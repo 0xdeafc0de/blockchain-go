@@ -1,10 +1,20 @@
 # Simple Blockchain in Go
-A basic blockchain implementation in Go, designed for learning and experimentation. This project shows how to:
+A minimalist blockchain implementation in Go demonstrating:
 
-- Define a `Block` structure with timestamp, data, and hash
-- Link blocks via their previous hash
-- Build a `Blockchain` with a genesis block and append new blocks
-- Calculate SHA-256 hashes for each block
-- Print the blockchain to the console
+- Block headers with metadata
+- Transaction list in the body
+- Merkle root calculation
+- Block linking via hashes
 
----
+## Features
+
+- Genesis block creation
+- Block chaining
+- SHA-256 hashing
+- Merkle root hash of transactions
+- Modular block and transaction structures
+
+## Run
+
+```bash
+go run blockchain.go
