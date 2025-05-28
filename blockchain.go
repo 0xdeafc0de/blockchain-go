@@ -1,13 +1,18 @@
 package main
 
 import (
-	//	"bytes"
+	"bytes"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	//	"strconv"
+	"math"
+	"math/big"
 	"time"
 )
+
+const targetBits = 16 //Difficulty: Adjust to make minimg harder
 
 type Transaction struct {
 	Sender    string
@@ -35,6 +40,67 @@ type Block struct {
 	Header BlockHeader
 	Body   BlockBody
 	Hash   []byte
+}
+
+type ProofOfWork struct {
+	block  *Block
+	target *big.Int
+}
+
+func NewProofOfWork(b *Block) *ProofOfWork {
+	target := big.NewInt(1)
+	target.Lsh(target, uint(256-targetBits))
+	return &ProofOfWork{b, target}
+}
+
+func (pow *ProofOfWork) prepareData(nonce int) []byte {
+	header := pow.block.Header
+	txData, _ := json.Marshal(pow.block.Body.Transactions)
+
+	data := bytes.Join(
+		[][]byte{
+			IntToHex(int64(header.Version)),
+			IntToHex(int64(header.Height)),
+			header.PrevBlockHash,
+			IntToHex(header.Timestamp),
+			header.MerkleRoot,
+			IntToHex(int64(nonce)),
+			IntToHex(int64(header.Bits)),
+			txData,
+		},
+		[]byte{},
+	)
+
+	return data
+}
+
+func (pow *ProofOfWork) Run() ([]byte, int) {
+	var hashInt big.Int
+	var hash [32]byte
+	nonce := 0
+
+	fmt.Printf("Mining block...\n")
+
+	for nonce < math.MaxInt64 {
+		data := pow.prepareData(nonce)
+		hash = sha256.Sum256(data)
+
+		hashInt.SetBytes(hash[:])
+		if hashInt.Cmp(pow.target) == -1 {
+			fmt.Printf("Mined with nonce %d: %x\n", nonce, hash)
+			break
+		}
+		nonce++
+	}
+	return hash[:], nonce
+}
+
+// -------------- Helpers -------------- //
+
+func IntToHex(n int64) []byte {
+	buff := new(bytes.Buffer)
+	_ = binary.Write(buff, binary.BigEndian, n)
+	return buff.Bytes()
 }
 
 func calculateMerkleRoot(transactions []*Transaction) []byte {
@@ -88,7 +154,12 @@ func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int) *Bl
 		Hash:   []byte{},
 	}
 
-	block.Hash = block.calculateHash()
+	pow := NewProofOfWork(block)
+	hash, nonce := pow.Run()
+
+	block.Hash = hash
+	block.Header.Nonce = nonce
+
 	return block
 }
 
@@ -98,6 +169,7 @@ func (b *Block) calculateHash() []byte {
 	return hash[:]
 }
 
+// -------------- Blockchain ---------------- //
 type Blockchain struct {
 	blocks []*Block
 }
