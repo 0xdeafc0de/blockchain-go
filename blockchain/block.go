@@ -26,10 +26,14 @@ func NewBlockchain() *Blockchain {
 }
 
 // AddBlock adds a block to the blockchain using the provided transaction data.
-func (bc *Blockchain) AddBlock(transactions []*Transaction) {
+func (bc *Blockchain) AddBlock(transactions []*Transaction) error {
 	prevBlock := bc.blocks[len(bc.blocks)-1]
-	newBlock := NewBlock(transactions, prevBlock.Hash, prevBlock.Height+1)
+	newBlock, err := NewBlock(transactions, prevBlock.Hash, prevBlock.Height+1)
+	if err != nil {
+		return err
+	}
 	bc.blocks = append(bc.blocks, newBlock)
+	return nil
 }
 
 // Blocks returns a copy of all blocks in the blockchain.

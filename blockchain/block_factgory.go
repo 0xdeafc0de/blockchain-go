@@ -2,6 +2,7 @@ package blockchain
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -12,8 +13,39 @@ type Transaction struct {
 	Data     string
 }
 
+// Validate ensures the transaction has the minimum required fields.
+func (tx *Transaction) Validate() error {
+	if tx == nil {
+		return fmt.Errorf("transaction is nil")
+	}
+	if strings.TrimSpace(tx.Sender) == "" {
+		return fmt.Errorf("transaction sender is required")
+	}
+	if strings.TrimSpace(tx.Receiver) == "" {
+		return fmt.Errorf("transaction receiver is required")
+	}
+	if tx.Amount <= 0 {
+		return fmt.Errorf("transaction amount must be greater than zero")
+	}
+	return nil
+}
+
+// ValidateTransactions checks a list of transactions before block creation.
+func ValidateTransactions(transactions []*Transaction) error {
+	for index, tx := range transactions {
+		if err := tx.Validate(); err != nil {
+			return fmt.Errorf("transaction %d invalid: %w", index, err)
+		}
+	}
+	return nil
+}
+
 // NewBlock creates and returns a new block using provided transactions and previous block hash.
-func NewBlock(transactions []*Transaction, prevHash []byte, height int) *Block {
+func NewBlock(transactions []*Transaction, prevHash []byte, height int) (*Block, error) {
+	if err := ValidateTransactions(transactions); err != nil {
+		return nil, err
+	}
+
 	block := &Block{
 		Height:         height,
 		Timestamp:      time.Now().Unix(),
@@ -38,13 +70,16 @@ func NewBlock(transactions []*Transaction, prevHash []byte, height int) *Block {
 		fmt.Println("Proof of Work: INVALID")
 	}
 
-	return block
+	return block, nil
 }
 
 // NewGenesisBlock returns the first block of the blockchain, also known as the genesis block.
 func NewGenesisBlock() *Block {
-	nb := NewBlock([]*Transaction{
+	nb, err := NewBlock([]*Transaction{
 		{Sender: "genesis", Receiver: "satoshi", Amount: 100, Data: "Genesis Block"},
 	}, []byte{}, 0)
+	if err != nil {
+		panic(err)
+	}
 	return nb
 }
