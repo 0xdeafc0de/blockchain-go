@@ -45,5 +45,10 @@ func LoadBlockchainFromFile(path string) (*Blockchain, error) {
 		return nil, fmt.Errorf("blockchain file contains no blocks")
 	}
 
-	return &Blockchain{blocks: snapshot.Blocks}, nil
+	bc := &Blockchain{blocks: snapshot.Blocks}
+	if err := bc.ValidateChain(); err != nil {
+		return nil, fmt.Errorf("validate blockchain: %w", err)
+	}
+
+	return bc, nil
 }
