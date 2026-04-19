@@ -59,3 +59,14 @@ func (bc *Blockchain) ValidateChain() error {
 
 	return nil
 }
+
+// ReplaceChain swaps the current chain for a validated candidate chain.
+func (bc *Blockchain) ReplaceChain(blocks []*Block) error {
+	candidate := &Blockchain{blocks: blocks}
+	if err := candidate.ValidateChain(); err != nil {
+		return err
+	}
+
+	bc.blocks = blocks
+	return nil
+}
